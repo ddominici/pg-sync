@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ddominici/pg-sync/internal/config"
@@ -50,25 +51,29 @@ func SyncTables(cfg *config.Config, log *logrus.Logger) error {
 	ctx := context.Background()
 
 	for _, table := range cfg.Tables {
-		log.Infof("Syncing table: %s", table)
+		tables := strings.Split(table, ";")
+		sourceTable := tables[0]
+		destinationTable := tables[1]
+
+		log.Infof("Syncing table: %s", sourceTable)
 
 		var buf bytes.Buffer
-		rows, err := srcConn.PgConn().CopyTo(ctx, &buf, fmt.Sprintf("COPY %s TO STDOUT", table))
+		rows, err := srcConn.PgConn().CopyTo(ctx, &buf, fmt.Sprintf("COPY %s TO STDOUT", sourceTable))
 		if err != nil {
 			return fmt.Errorf("copy from source failed: %w", err)
 		}
-		log.Debugf("Copied %d bytes from source for table %s", rows, table)
+		log.Debugf("Copied %d bytes from source for table %s", rows, sourceTable)
 
-		if _, err := tgtConn.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s", table)); err != nil {
+		if _, err := tgtConn.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE %s", destinationTable)); err != nil {
 			return fmt.Errorf("truncate failed: %w", err)
 		}
 
-		_, err = tgtConn.PgConn().CopyFrom(ctx, &buf, fmt.Sprintf("COPY %s FROM STDIN", table))
+		_, err = tgtConn.PgConn().CopyFrom(ctx, &buf, fmt.Sprintf("COPY %s FROM STDIN", destinationTable))
 		if err != nil {
 			return fmt.Errorf("copy to target failed: %w", err)
 		}
 
-		log.Infof("Table %s synced successfully", table)
+		log.Infof("Table %s synced successfully", destinationTable)
 	}
 
 	return nil

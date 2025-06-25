@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"os"
 
 	"github.com/ddominici/pg-sync/internal/config"
+	"github.com/ddominici/pg-sync/internal/notify"
 	"github.com/ddominici/pg-sync/internal/sync"
 	"github.com/sirupsen/logrus"
 )
@@ -53,6 +55,17 @@ func main() {
 
 	if err := sync.SyncTables(cfg, log); err != nil {
 		log.Errorf("Sync failed: %v", err)
+
+		emailErr := notify.SendErrorEmail(
+			cfg.Email,
+			"pg-sync error: Sync Failed",
+			fmt.Sprintf("The sync failed with error:\n\n%v", err),
+		)
+
+		if emailErr != nil {
+			log.Errorf("Failed to send error notification email: %v", emailErr)
+		}
+
 		os.Exit(1)
 	}
 

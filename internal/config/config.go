@@ -5,6 +5,16 @@ import (
 	"os"
 )
 
+type EmailConfig struct {
+	Enabled  bool     `yaml:"enabled"`
+	SMTPHost string   `yaml:"smtp_host"`
+	SMTPPort int      `yaml:"smtp_port"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
+	From     string   `yaml:"from"`
+	To       []string `yaml:"to"`
+}
+
 type DBConfig struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
@@ -14,9 +24,10 @@ type DBConfig struct {
 }
 
 type Config struct {
-	Source DBConfig `yaml:"source"`
-	Target DBConfig `yaml:"target"`
-	Tables []string `yaml:"tables"`
+	Source DBConfig    `yaml:"source"`
+	Target DBConfig    `yaml:"target"`
+	Tables []string    `yaml:"tables"`
+	Email  EmailConfig `yaml:"email"`
 }
 
 func LoadConfig(path string) (*Config, error) {
